@@ -3,7 +3,9 @@ const GAMES = {
   clans: { name: 'Clash of Clans', sub: 'Ejércitos y aldea' },
   brawl: { name: 'Brawl Stars', sub: 'Brawlers y eventos' },
 };
-const TABS = ['Meta', 'Novedades', 'Jugador', 'Rankings'];
+const ALL_TABS = ['Meta', 'Novedades', 'Jugador', 'Rankings'];
+// Clash of Clans no muestra Rankings por ahora.
+const tabsFor = (game) => (game === 'clans' ? ALL_TABS.filter((t) => t !== 'Rankings') : ALL_TABS);
 
 const state = { game: 'royale', tab: 'Meta', sort: 'win', rank: 'players', tag: '', status: {} };
 let renderToken = 0;
@@ -114,7 +116,7 @@ function renderChrome() {
   $('app').dataset.game = state.game;
   $('games').innerHTML = Object.entries(GAMES).map(([k, g]) =>
     `<button class="game" data-game="${k}" aria-pressed="${state.game === k}"><b>${g.name}</b><small>${g.sub}</small></button>`).join('');
-  $('tabs').innerHTML = TABS.map((t) =>
+  $('tabs').innerHTML = tabsFor(state.game).map((t) =>
     `<button class="tab" role="tab" data-tab="${t}" aria-selected="${state.tab === t}">${t}</button>`).join('');
   $('status').innerHTML = Object.entries(GAMES).map(([k, g]) => {
     const live = state.status[k] === 'live';
@@ -148,6 +150,7 @@ async function renderPanel(extra = {}) {
 }
 
 function render() {
+  if (!tabsFor(state.game).includes(state.tab)) state.tab = 'Meta';
   renderChrome();
   renderPanel();
 }
