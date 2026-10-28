@@ -33,10 +33,10 @@ const fakeRoutes = {
 
 // Página de blog simulada (la forma real no se pudo ver como HTML; esto cubre los casos previstos).
 const BLOG_HTML = `<ul>
-  <li><a href="/en/games/clashroyale/blog/release-notes/new-season-king-vs-king/"><img src="x.png"></a>
+  <li><a href="/en/games/clashroyale/blog/release-notes/new-season-king-vs-king/"><img src="/img/a.png"></a>
       <span>Blog &ndash; Clash Royale</span> <time>27 oct 2026</time>
       <a href="/en/games/clashroyale/blog/release-notes/new-season-king-vs-king/">New Season: King vs. King!</a></li>
-  <li><a href="/en/games/clashroyale/blog/release-notes/october-balance-changes-2026/">Blog – Clash Royale 6 oct 2026 October Balance Changes</a></li>
+  <li><img data-src="https://cdn.test/b.jpg" src="data:image/gif;base64,R0lGOD"><a href="/en/games/clashroyale/blog/release-notes/october-balance-changes-2026/">Blog – Clash Royale 6 oct 2026 October Balance Changes</a></li>
   <li><a href="/en/games/clashroyale/blog/release-notes/solo-slug-sin-texto/"></a></li>
 </ul>`;
 
@@ -175,6 +175,9 @@ await check('con blog simulado: título, fecha, enlace y etiqueta', async () => 
   assert.equal(b.title, 'October Balance Changes');
   assert.equal(b.tag, 'Balance');
   assert.equal(c.title, 'Solo slug sin texto');
+  assert.equal(a.image, 'http://localhost:4101/img/a.png');
+  assert.equal(b.image, 'https://cdn.test/b.jpg');
+  assert.equal(c.image, null);
 });
 await check('blog que falla en otro juego: vuelve a los ejemplos', async () => {
   assert.equal((await get(4103, '/api/brawl/news')).json.source, 'example');

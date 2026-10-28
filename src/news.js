@@ -21,6 +21,26 @@ const decode = (s) =>
 const textOf = (html) => decode(html.replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim();
 const DATE = /\b(\d{1,2})\s+([A-Za-zÀ-ÿ]{3,10})\.?\s+(\d{4})\b/;
 
+// Busca la primera imagen usable dentro de un trozo de HTML (o la última, con last=true).
+// Las páginas con carga diferida ponen la imagen real en data-src y un marcador en src.
+const attr = (tag, name) => tag.match(new RegExp(`\\b${name}=["']([^"']+)["']`, 'i'))?.[1];
+function imageFrom(html, origin, last = false) {
+  const tags = html.match(/<img\b[^>]*>/gi) ?? [];
+  for (const t of last ? [...tags].reverse() : tags) {
+    const cand =
+      attr(t, 'data-src') || attr(t, 'data-lazy-src') || attr(t, 'src') ||
+      (attr(t, 'data-srcset') || attr(t, 'srcset') || '').split(',')[0].trim().split(/\s+/)[0];
+    if (!cand || cand.startsWith('data:')) continue;
+    try {
+      const u = new URL(decode(cand), origin + '/');
+      if (u.protocol === 'https:' || u.protocol === 'http:') return u.href;
+    } catch {
+      /* dirección inválida: se prueba la siguiente imagen */
+    }
+  }
+  return null;
+}
+
 const humanize = (slug) => {
   const t = slug.replace(/-/g, ' ');
   return t.charAt(0).toUpperCase() + t.slice(1);
@@ -43,14 +63,15 @@ export function parseBlog(html, origin) {
   while ((m = re.exec(html))) {
     const [, href, slug, inner] = m;
     const url = new URL(href, origin + '/').href;
-    const entry = found.get(url) ?? { url, slug, text: '', around: '' };
+    const entry = found.get(url) ?? { url, slug, text: '', around: '', image: null };
     entry.text = `${entry.text} ${textOf(inner)}`.trim();
     // Texto del bloque que rodea al enlace (la fecha suele estar fuera del enlace).
     const start = Math.max(html.lastIndexOf('<li', m.index), html.lastIndexOf('<article', m.index), m.index - 400);
     entry.around = `${entry.around} ${textOf(html.slice(start, m.index))}`.trim();
+    entry.image ??= imageFrom(inner, origin) ?? imageFrom(html.slice(start, m.index), origin, true);
     found.set(url, entry);
   }
-  return [...found.values()].slice(0, 8).map(({ url, slug, text, around }) => {
+  return [...found.values()].slice(0, 8).map(({ url, slug, text, around, image }) => {
     const date = (text.match(DATE) ?? around.match(DATE))?.[0] ?? '';
     let title = text
       .replace(DATE, ' ')
@@ -58,7 +79,7 @@ export function parseBlog(html, origin) {
       .replace(/\s+/g, ' ')
       .trim();
     if (title.length < 4 || title.length > 140) title = humanize(slug);
-    return { tag: classify(slug, title), date, title, text: '', url };
+    return { tag: classify(slug, title), date, title, text: '', url, image };
   });
 }
 
