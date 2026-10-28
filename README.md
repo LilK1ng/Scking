@@ -38,7 +38,7 @@ Con key de Brawl Stars aparecen las imágenes de los brawlers (vienen de Brawlif
 | Imágenes de cartas (Royale) y brawlers (Brawl Stars) | Reales con key |
 | Estadísticas de meta (uso, % de victorias) | **De ejemplo**. Hay que calcularlas |
 | Rotación de eventos, ejércitos, tracker de aldea | De ejemplo |
-| Novedades y parches | De ejemplo |
+| Novedades y parches | Reales, leídas del blog oficial de Supercell (título, fecha y enlace). Si no se pueden leer, se muestran de ejemplo. No necesita key |
 | Imágenes de tropas y héroes de Clash of Clans | Sin resolver |
 
 Las rutas de rankings y de imágenes de Brawlify se escribieron sin poder probarlas contra
@@ -68,6 +68,6 @@ PLAN.md              plan del proyecto
 ## Próximos pasos
 
 1. Colector de partidas de los mejores jugadores para calcular el meta real.
-2. Fuente real de novedades y parches.
+2. Verificar el lector de novedades contra las páginas reales (Brawl Stars no se pudo revisar).
 3. Imágenes de Clash of Clans.
 4. Publicarlo en un servidor con IP fija y empaquetarlo como app.

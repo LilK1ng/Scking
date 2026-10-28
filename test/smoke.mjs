@@ -31,7 +31,18 @@ const fakeRoutes = {
   '/coc/v1/locations/32000999/rankings/clans?limit=10': { items: [{ name: 'CC', clanPoints: 50000 }] },
 };
 
+// Página de blog simulada (la forma real no se pudo ver como HTML; esto cubre los casos previstos).
+const BLOG_HTML = `<ul>
+  <li><a href="/en/games/clashroyale/blog/release-notes/new-season-king-vs-king/"><img src="x.png"></a>
+      <span>Blog &ndash; Clash Royale</span> <time>27 oct 2026</time>
+      <a href="/en/games/clashroyale/blog/release-notes/new-season-king-vs-king/">New Season: King vs. King!</a></li>
+  <li><a href="/en/games/clashroyale/blog/release-notes/october-balance-changes-2026/">Blog – Clash Royale 6 oct 2026 October Balance Changes</a></li>
+  <li><a href="/en/games/clashroyale/blog/release-notes/solo-slug-sin-texto/"></a></li>
+</ul>`;
+
 const fake = http.createServer((req, res) => {
+  if (req.url === '/en/games/clashroyale/es/blog/') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(BLOG_HTML); }
+  if (req.url.startsWith('/en/games/')) { res.writeHead(404); return res.end('no'); }
   const send = (s, b) => { res.writeHead(s, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(b)); };
   if (req.headers.authorization !== `Bearer ${KEY}`) return send(403, { reason: 'accessDenied' });
   const hit = fakeRoutes[req.url];
@@ -49,9 +60,9 @@ function start(port, extraEnv) {
   });
 }
 
-const mockSrv = await start(4102, {});
+const mockSrv = await start(4102, { NEWS_BASE_URL: 'http://localhost:1' });
 const liveSrv = await start(4103, {
-  CR_API_KEY: KEY, COC_API_KEY: KEY, BS_API_KEY: KEY,
+  CR_API_KEY: KEY, COC_API_KEY: KEY, BS_API_KEY: KEY, NEWS_BASE_URL: 'http://localhost:4101',
   CR_BASE_URL: 'http://localhost:4101/royale/v1', COC_BASE_URL: 'http://localhost:4101/coc/v1', BS_BASE_URL: 'http://localhost:4101/brawl/v1',
 });
 
@@ -144,6 +155,29 @@ await check('Clans: perfil real con héroes de la aldea principal', async () => 
 await check('Clans y Brawl: rankings reales', async () => {
   assert.equal((await get(4103, '/api/clans/rankings')).json.clans[0].score, 50000);
   assert.equal((await get(4103, '/api/brawl/rankings')).json.players[0].name, 'P1');
+});
+
+console.log('Novedades');
+await check('sin acceso al blog: se muestran las de ejemplo', async () => {
+  const { json } = await get(4102, '/api/royale/news');
+  assert.equal(json.source, 'example');
+  assert.ok(json.items.length > 0);
+});
+await check('con blog simulado: título, fecha, enlace y etiqueta', async () => {
+  const { json } = await get(4103, '/api/royale/news');
+  assert.equal(json.source, 'live');
+  assert.equal(json.items.length, 3);
+  const [a, b, c] = json.items;
+  assert.equal(a.title, 'New Season: King vs. King!');
+  assert.equal(a.date, '27 oct 2026');
+  assert.equal(a.tag, 'Temporada');
+  assert.equal(a.url, 'http://localhost:4101/en/games/clashroyale/blog/release-notes/new-season-king-vs-king/');
+  assert.equal(b.title, 'October Balance Changes');
+  assert.equal(b.tag, 'Balance');
+  assert.equal(c.title, 'Solo slug sin texto');
+});
+await check('blog que falla en otro juego: vuelve a los ejemplos', async () => {
+  assert.equal((await get(4103, '/api/brawl/news')).json.source, 'example');
 });
 
 mockSrv.kill(); liveSrv.kill(); fake.close();

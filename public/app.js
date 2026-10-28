@@ -81,10 +81,12 @@ function metaClans(d) {
 
 /* ---------- Otras pestañas ---------- */
 function newsView(d) {
-  const note = d.source === 'example' ? '<p class="note">Noticias de ejemplo. Falta conectar una fuente real.</p>' : '';
+  const note = d.source === 'example'
+    ? '<p class="note">No se pudieron leer las novedades oficiales. Se muestran noticias de ejemplo.</p>'
+    : '<p class="note">Fuente: blog oficial de Supercell. Tocá una novedad para leerla completa allí.</p>';
   return `<section><h2>Novedades y parches</h2>${note}<div class="list">` +
     d.items.map((n) => `
-      <article class="news"><div class="meta"><span class="tag">${esc(n.tag)}</span><span>${esc(n.date)}</span></div><h3>${esc(n.title)}</h3><p>${esc(n.text)}</p></article>`).join('') +
+      <article class="news"><div class="meta"><span class="tag">${esc(n.tag)}</span><span>${esc(n.date)}</span></div><h3>${n.url ? `<a href="${esc(n.url)}" target="_blank" rel="noopener noreferrer">${esc(n.title)}</a>` : esc(n.title)}</h3>${n.text ? `<p>${esc(n.text)}</p>` : ''}</article>`).join('') +
     '</div></section>';
 }
 

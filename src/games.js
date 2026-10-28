@@ -8,6 +8,7 @@
 import { cached, HOUR, MIN } from './lib/cache.js';
 import { ApiError, isLive, normalizeTag, sc } from './lib/supercell.js';
 import * as mock from './mock.js';
+import { getNews } from './news.js';
 
 const fmtNum = (n) => (typeof n === 'number' ? n.toLocaleString('es-AR') : String(n ?? '-'));
 const avgElixir = (cards) => {
@@ -58,7 +59,7 @@ const royale = {
     return { decks, topCards, stats: 'example' };
   },
   async news() {
-    return { items: mock.royale.news, source: 'example' };
+    return getNews('royale', mock.royale.news);
   },
   async player(raw) {
     const tag = tagOrThrow(raw);
@@ -132,7 +133,7 @@ const clans = {
     return { armies: mock.clans.armies, tracker: mock.clans.tracker.map(([name, pct]) => ({ name, pct })), stats: 'example' };
   },
   async news() {
-    return { items: mock.clans.news, source: 'example' };
+    return getNews('clans', mock.clans.news);
   },
   async player(raw) {
     const tag = tagOrThrow(raw);
@@ -195,7 +196,7 @@ const brawl = {
     return { brawlers, rotation: mock.brawl.rotation, stats: 'example' };
   },
   async news() {
-    return { items: mock.brawl.news, source: 'example' };
+    return getNews('brawl', mock.brawl.news);
   },
   async player(raw) {
     const tag = tagOrThrow(raw);
