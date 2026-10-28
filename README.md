@@ -1,4 +1,4 @@
-# Hub Supercell
+# SCKING
 
 Web no oficial para jugadores de Clash Royale, Clash of Clans y Brawl Stars.
 Proyecto de fans sin fines de lucro. No está afiliado ni avalado por Supercell.

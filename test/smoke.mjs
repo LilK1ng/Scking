@@ -44,7 +44,7 @@ function start(port, extraEnv) {
   const env = { PATH: process.env.PATH, PORT: String(port), ...extraEnv };
   const child = spawn(process.execPath, ['src/server.js'], { cwd: ROOT, env, stdio: ['ignore', 'pipe', 'inherit'] });
   return new Promise((resolve) => {
-    child.stdout.on('data', (d) => { if (String(d).includes('Hub Supercell')) resolve(child); });
+    child.stdout.on('data', (d) => { if (String(d).includes('SCKING en')) resolve(child); });
   });
 }
 

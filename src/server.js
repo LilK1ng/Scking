@@ -73,7 +73,7 @@ export function createServer() {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const port = Number(process.env.PORT) || 3000;
   createServer().listen(port, () => {
-    console.log(`Hub Supercell en http://localhost:${port}`);
+    console.log(`SCKING en http://localhost:${port}`);
     for (const g of GAME_IDS) console.log(`  ${g}: ${isLive(g) ? 'datos reales' : 'modo ejemplo (sin key)'}`);
   });
 }

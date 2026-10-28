@@ -1,4 +1,4 @@
-# Supercell Hub — Plan del proyecto
+# SCKING — Plan del proyecto
 
 App móvil (Android + iOS) para jugadores de **Clash Royale**, **Clash of Clans** y **Brawl Stars**.
 
@@ -69,7 +69,7 @@ Regla general: no copiar contenido ni scrapear estos sitios. Usar APIs oficiales
 ## Estructura de carpetas
 
 ```
-supercell-hub/
+scking/
   apps/
     mobile/        # Expo app
     api/           # Fastify backend
