@@ -40,7 +40,11 @@ const BLOG_HTML = `<ul>
   <li><a href="/en/games/clashroyale/blog/release-notes/solo-slug-sin-texto/"></a></li>
 </ul>`;
 
+const ART1 = `<html><head><meta property="og:description" content="La nueva temporada trae un modo &amp; recompensas nuevas. ${'Texto largo para recortar. '.repeat(20)}"></head><body></body></html>`;
+const ART2 = `<html><body><p>corto</p><p>Este es el primer párrafo largo del artículo, con suficiente texto como para usarse de adelanto.</p></body></html>`;
 const fake = http.createServer((req, res) => {
+  if (req.url === '/en/games/clashroyale/blog/release-notes/new-season-king-vs-king/') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(ART1); }
+  if (req.url === '/en/games/clashroyale/blog/release-notes/october-balance-changes-2026/') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(ART2); }
   if (req.url === '/en/games/clashroyale/es/blog/') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(BLOG_HTML); }
   if (req.url.startsWith('/en/games/')) { res.writeHead(404); return res.end('no'); }
   const send = (s, b) => { res.writeHead(s, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(b)); };
@@ -176,6 +180,10 @@ await check('con blog simulado: título, fecha, enlace y etiqueta', async () => 
   assert.equal(b.tag, 'Balance');
   assert.equal(c.title, 'Solo slug sin texto');
   assert.equal(a.image, 'http://localhost:4101/img/a.png');
+  assert.ok(a.text.startsWith('La nueva temporada trae un modo & recompensas nuevas.'));
+  assert.ok(a.text.length <= 221 && a.text.endsWith('…'));
+  assert.equal(b.text, 'Este es el primer párrafo largo del artículo, con suficiente texto como para usarse de adelanto.');
+  assert.equal(c.text, '');
   assert.equal(b.image, 'https://cdn.test/b.jpg');
   assert.equal(c.image, null);
 });

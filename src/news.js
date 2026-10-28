@@ -3,7 +3,7 @@
 // No hay RSS ni API, así que se interpreta el HTML. Si Supercell cambia su página y deja de
 // funcionar, se muestran las noticias de ejemplo (el resto de la app no se ve afectado).
 
-import { cached, MIN } from './lib/cache.js';
+import { cached, HOUR, MIN } from './lib/cache.js';
 
 const SLUGS = { royale: 'clashroyale', clans: 'clashofclans', brawl: 'brawlstars' };
 const baseUrl = () => (process.env.NEWS_BASE_URL || 'https://supercell.com').replace(/\/$/, '');
@@ -62,7 +62,9 @@ export function parseBlog(html, origin) {
   let m;
   while ((m = re.exec(html))) {
     const [, href, slug, inner] = m;
-    const url = new URL(href, origin + '/').href;
+    const abs = new URL(href, origin + '/');
+    if (abs.origin !== new URL(origin).origin) continue; // solo enlaces del sitio oficial
+    const url = abs.href;
     const entry = found.get(url) ?? { url, slug, text: '', around: '', image: null };
     entry.text = `${entry.text} ${textOf(inner)}`.trim();
     // Texto del bloque que rodea al enlace (la fecha suele estar fuera del enlace).
@@ -83,6 +85,44 @@ export function parseBlog(html, origin) {
   });
 }
 
+// Adelanto de cada artículo: la descripción corta que la propia página publica para buscadores.
+const metaContent = (html, key) => {
+  for (const t of html.match(/<meta\b[^>]*>/gi) ?? []) {
+    if (new RegExp(`(?:property|name)=["']${key}["']`, 'i').test(t)) return attr(t, 'content');
+  }
+  return null;
+};
+
+function clip(text, max = 220) {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  return cut.slice(0, Math.max(cut.lastIndexOf(' '), 80)).replace(/[\s,.;:–—-]+$/, '') + '…';
+}
+
+export function excerptFrom(html) {
+  const meta = metaContent(html, 'og:description') || metaContent(html, 'description');
+  if (meta && textOf(meta).length > 20) return clip(textOf(meta));
+  for (const m of html.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)) {
+    const t = textOf(m[1]);
+    if (t.length >= 60) return clip(t);
+  }
+  return '';
+}
+
+function excerpt(url) {
+  return cached(`excerpt:${url}`, HOUR, async () => {
+    try {
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'SCKING-fan-project/0.1 (sin fines de lucro)', Accept: 'text/html' },
+        signal: AbortSignal.timeout(8_000),
+      });
+      return res.ok ? excerptFrom(await res.text()) : '';
+    } catch {
+      return '';
+    }
+  });
+}
+
 async function readBlog(game) {
   const origin = baseUrl();
   // Primero la versión en español del blog; si no existe o viene vacía, la de inglés.
@@ -94,7 +134,10 @@ async function readBlog(game) {
       });
       if (!res.ok) continue;
       const items = parseBlog(await res.text(), origin);
-      if (items.length) return items;
+      if (items.length) {
+        await Promise.all(items.map(async (it) => { it.text = await excerpt(it.url); }));
+        return items;
+      }
     } catch {
       /* se prueba la siguiente dirección */
     }

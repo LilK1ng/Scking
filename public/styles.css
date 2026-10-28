@@ -111,3 +111,4 @@ body{margin:0}
 .news .body{display:flex;flex-direction:column;gap:4px;min-width:0}
 .news .thumb{width:128px;aspect-ratio:16/9;object-fit:cover;border-radius:6px;background:var(--surface2)}
 @media (max-width:520px){.news.withimg{grid-template-columns:96px minmax(0,1fr);gap:10px}.news .thumb{width:96px}}
+.news .more{font-size:13px;font-weight:600;color:var(--accent);text-decoration:none;margin-top:4px;align-self:flex-start}.news .more:hover{text-decoration:underline}

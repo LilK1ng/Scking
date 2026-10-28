@@ -86,7 +86,7 @@ function newsView(d) {
     : '<p class="note">Fuente: blog oficial de Supercell. Tocá una novedad para leerla completa allí.</p>';
   return `<section><h2>Novedades y parches</h2>${note}<div class="list">` +
     d.items.map((n) => `
-      <article class="news${n.image ? ' withimg' : ''}">${n.image ? `<img class="thumb" src="${esc(n.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}<div class="body"><div class="meta"><span class="tag">${esc(n.tag)}</span><span>${esc(n.date)}</span></div><h3>${n.url ? `<a href="${esc(n.url)}" target="_blank" rel="noopener noreferrer">${esc(n.title)}</a>` : esc(n.title)}</h3>${n.text ? `<p>${esc(n.text)}</p>` : ''}</div></article>`).join('') +
+      <article class="news${n.image ? ' withimg' : ''}">${n.image ? `<img class="thumb" src="${esc(n.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}<div class="body"><div class="meta"><span class="tag">${esc(n.tag)}</span><span>${esc(n.date)}</span></div><h3>${n.url ? `<a href="${esc(n.url)}" target="_blank" rel="noopener noreferrer">${esc(n.title)}</a>` : esc(n.title)}</h3>${n.text ? `<p>${esc(n.text)}</p>` : ''}${n.url ? `<a class="more" href="${esc(n.url)}" target="_blank" rel="noopener noreferrer">Leer completa en Supercell →</a>` : ''}</div></article>`).join('') +
     '</div></section>';
 }
 
