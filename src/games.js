@@ -98,19 +98,33 @@ const royale = {
 };
 
 // -------------------------------------------------------------- Clash of Clans
-// El id de la ubicación "Internacional" se busca en la lista oficial en lugar de fijarlo.
-async function cocGlobalLocation() {
-  return cached('clans:globalLocation', 24 * HOUR, async () => {
+// Ubicaciones a probar para el ranking mundial de Clash of Clans: primero el alias "global",
+// después las "internacionales" que figuren en la lista oficial. Se usa la primera que no dé 404.
+async function cocRankingLocations() {
+  return cached('clans:locations', 24 * HOUR, async () => {
+    const out = ['global'];
     try {
       const r = await sc('clans', '/locations?limit=500');
       const items = r.items ?? [];
-      const g = items.find((l) => /international|internacional/i.test(l.name)) ?? items.find((l) => l.isCountry === false);
-      if (g) return g.id;
+      for (const l of items) if (/international|internacional/i.test(l.name) || l.isCountry === false) out.push(l.id);
     } catch {
-      /* si falla la lista, se prueba con el alias global */
+      /* si falla la lista, queda solo el alias global */
     }
-    return 'global';
+    return out;
   });
+}
+
+async function cocRanking(kind) {
+  let last;
+  for (const loc of await cocRankingLocations()) {
+    try {
+      return await sc('clans', `/locations/${loc}/rankings/${kind}?limit=10`);
+    } catch (err) {
+      last = err;
+      if (err.status !== 404) throw err;
+    }
+  }
+  throw last;
 }
 
 const clans = {
@@ -144,9 +158,8 @@ const clans = {
   async rankings() {
     if (!isLive('clans')) return { players: pairs(mock.clans.rankings.players), clans: pairs(mock.clans.rankings.clans), source: 'example' };
     return cached('clans:rankings', 15 * MIN, async () => {
-      const loc = await cocGlobalLocation();
-      const p = await sc('clans', `/locations/${loc}/rankings/players?limit=10`);
-      const c = await sc('clans', `/locations/${loc}/rankings/clans?limit=10`);
+      const p = await cocRanking('players');
+      const c = await cocRanking('clans');
       return {
         players: (p.items ?? []).map((i) => ({ name: i.name, score: i.trophies })),
         clans: (c.items ?? []).map((i) => ({ name: i.name, score: i.clanPoints })),
