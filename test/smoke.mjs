@@ -26,8 +26,9 @@ const fakeRoutes = {
   '/brawl/v1/rankings/global/clubs?limit=10': { items: [{ name: 'C1', trophies: 1800000 }] },
   '/coc/v1/players/%232PP': { name: 'Aldeano', tag: '#2PP', townHallLevel: 15, trophies: 5000, warStars: 100,
     heroes: [{ name: 'Barbarian King', level: 80, village: 'home' }, { name: 'Battle Machine', level: 30, village: 'builderBase' }] },
-  '/coc/v1/locations/32000006/rankings/players?limit=10': { items: [{ name: 'CP', trophies: 6000 }] },
-  '/coc/v1/locations/32000006/rankings/clans?limit=10': { items: [{ name: 'CC', clanPoints: 50000 }] },
+  '/coc/v1/locations?limit=500': { items: [{ id: 32000000, name: 'Europe', isCountry: false }, { id: 32000999, name: 'International', isCountry: false }] },
+  '/coc/v1/locations/32000999/rankings/players?limit=10': { items: [{ name: 'CP', trophies: 6000 }] },
+  '/coc/v1/locations/32000999/rankings/clans?limit=10': { items: [{ name: 'CC', clanPoints: 50000 }] },
 };
 
 const fake = http.createServer((req, res) => {

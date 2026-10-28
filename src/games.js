@@ -98,6 +98,21 @@ const royale = {
 };
 
 // -------------------------------------------------------------- Clash of Clans
+// El id de la ubicación "Internacional" se busca en la lista oficial en lugar de fijarlo.
+async function cocGlobalLocation() {
+  return cached('clans:globalLocation', 24 * HOUR, async () => {
+    try {
+      const r = await sc('clans', '/locations?limit=500');
+      const items = r.items ?? [];
+      const g = items.find((l) => /international|internacional/i.test(l.name)) ?? items.find((l) => l.isCountry === false);
+      if (g) return g.id;
+    } catch {
+      /* si falla la lista, se prueba con el alias global */
+    }
+    return 'global';
+  });
+}
+
 const clans = {
   async meta() {
     return { armies: mock.clans.armies, tracker: mock.clans.tracker.map(([name, pct]) => ({ name, pct })), stats: 'example' };
@@ -129,9 +144,9 @@ const clans = {
   async rankings() {
     if (!isLive('clans')) return { players: pairs(mock.clans.rankings.players), clans: pairs(mock.clans.rankings.clans), source: 'example' };
     return cached('clans:rankings', 15 * MIN, async () => {
-      const GLOBAL = 32000006; // ubicación "Internacional"
-      const p = await sc('clans', `/locations/${GLOBAL}/rankings/players?limit=10`);
-      const c = await sc('clans', `/locations/${GLOBAL}/rankings/clans?limit=10`);
+      const loc = await cocGlobalLocation();
+      const p = await sc('clans', `/locations/${loc}/rankings/players?limit=10`);
+      const c = await sc('clans', `/locations/${loc}/rankings/clans?limit=10`);
       return {
         players: (p.items ?? []).map((i) => ({ name: i.name, score: i.trophies })),
         clans: (c.items ?? []).map((i) => ({ name: i.name, score: i.clanPoints })),

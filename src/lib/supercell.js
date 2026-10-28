@@ -46,6 +46,7 @@ export async function sc(game, path) {
   if (res.ok) return res.json();
 
   const body = await res.json().catch(() => ({}));
+  console.warn(`[supercell] ${game} ${res.status} ${path}`);
   if (res.status === 404) throw new ApiError(404, 'No se encontró ese jugador o clan.');
   if (res.status === 403)
     throw new ApiError(502, 'La API rechazó la key. Revisá que la IP registrada sea la de este equipo.');
