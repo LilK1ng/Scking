@@ -97,7 +97,7 @@ await check('rankings y noticias en los 3 juegos', async () => {
   }
 });
 await check('sirve la página y archivos estáticos', async () => {
-  assert.ok((await get(4102, '/')).text.includes('Hub'));
+  assert.ok((await get(4102, '/')).text.includes('SCKING'));
   assert.equal((await get(4102, '/app.js')).status, 200);
   assert.equal((await get(4102, '/../package.json')).status, 404);
 });
