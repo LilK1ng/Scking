@@ -125,8 +125,9 @@ function excerpt(url) {
 
 async function readBlog(game) {
   const origin = baseUrl();
-  // Primero la versión en español del blog; si no existe o viene vacía, la de inglés.
-  for (const path of [`/en/games/${SLUGS[game]}/es/blog/`, `/en/games/${SLUGS[game]}/blog/`]) {
+  // Primero el blog en inglés, que tiene todas las publicaciones y las más nuevas.
+  // La versión en español queda como respaldo: suele traer pocas publicaciones traducidas.
+  for (const path of [`/en/games/${SLUGS[game]}/blog/`, `/en/games/${SLUGS[game]}/es/blog/`]) {
     try {
       const res = await fetch(origin + path, {
         headers: { 'User-Agent': 'SCKING-fan-project/0.1 (sin fines de lucro)', Accept: 'text/html' },

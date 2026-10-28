@@ -45,7 +45,9 @@ const ART2 = `<html><body><p>corto</p><p>Este es el primer párrafo largo del ar
 const fake = http.createServer((req, res) => {
   if (req.url === '/en/games/clashroyale/blog/release-notes/new-season-king-vs-king/') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(ART1); }
   if (req.url === '/en/games/clashroyale/blog/release-notes/october-balance-changes-2026/') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(ART2); }
-  if (req.url === '/en/games/clashroyale/es/blog/') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(BLOG_HTML); }
+  if (req.url === '/en/games/clashroyale/blog/') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(BLOG_HTML); }
+  // El blog en español solo trae una publicación vieja: no debe usarse si el de inglés funciona.
+  if (req.url === '/en/games/clashroyale/es/blog/') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end('<a href="/en/games/clashroyale/blog/news/vieja-unica/">Publicación vieja</a>'); }
   if (req.url.startsWith('/en/games/')) { res.writeHead(404); return res.end('no'); }
   const send = (s, b) => { res.writeHead(s, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(b)); };
   if (req.headers.authorization !== `Bearer ${KEY}`) return send(403, { reason: 'accessDenied' });
