@@ -3,11 +3,11 @@ const GAMES = {
   clans: { name: 'Clash of Clans', sub: 'Ejércitos y aldea' },
   brawl: { name: 'Brawl Stars', sub: 'Brawlers y eventos' },
 };
-const ALL_TABS = ['Meta', 'Novedades', 'Jugador', 'Rankings'];
+const ALL_TABS = ['Meta', 'Novedades', 'Videos', 'Jugador', 'Rankings'];
 // Clash of Clans no muestra Rankings por ahora.
 const tabsFor = (game) => (game === 'clans' ? ALL_TABS.filter((t) => t !== 'Rankings') : ALL_TABS);
 
-const state = { game: 'royale', tab: 'Meta', sort: 'win', rank: 'players', tag: '', status: {} };
+const state = { game: 'royale', tab: 'Meta', sort: 'win', rank: 'players', tag: '', topic: 'Todos', status: {} };
 let renderToken = 0;
 
 const $ = (id) => document.getElementById(id);
@@ -90,6 +90,21 @@ function newsView(d) {
     '</div></section>';
 }
 
+function videosView(d) {
+  if (!d.items.length) return `<section><h2>Videos</h2><p class="note">${esc(d.message || 'No hay videos para mostrar.')}</p></section>`;
+  const topics = ['Todos', ...new Set(d.items.map((v) => v.topic))];
+  if (!topics.includes(state.topic)) state.topic = 'Todos';
+  const shown = d.items.filter((v) => state.topic === 'Todos' || v.topic === state.topic);
+  const fmtDate = (iso) => { const t = Date.parse(iso); return t ? new Date(t).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) : ''; };
+  return `<section><h2>Videos <small>De canales elegidos · se abren en YouTube</small></h2>
+    <div class="fchips" role="group" aria-label="Tema">${topics.map((t) => `<button class="fchip" data-topic="${esc(t)}" aria-pressed="${state.topic === t}">${esc(t)}</button>`).join('')}</div>
+    <div class="vgrid">${shown.map((v) => `
+      <a class="vcard" href="${esc(v.url)}" target="_blank" rel="noopener noreferrer">
+        <img src="${esc(v.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">
+        <span class="vbody"><span class="vtitle">${esc(v.title)}</span><span class="vmeta">${esc(v.channel)}${fmtDate(v.published) ? ' · ' + fmtDate(v.published) : ''}</span></span>
+      </a>`).join('')}</div></section>`;
+}
+
 function playerView(p, err) {
   const card = p ? `<div class="profile">
       <div><div class="sub">${esc(p.tag)}${p.source === 'example' ? ' · datos de ejemplo' : ''}</div><h3>${esc(p.name)}</h3></div>
@@ -142,6 +157,8 @@ async function renderPanel(extra = {}) {
       html = game === 'royale' ? metaRoyale(d) : game === 'brawl' ? metaBrawl(d) : metaClans(d);
     } else if (state.tab === 'Novedades') {
       html = newsView(await api(`/${game}/news`));
+    } else if (state.tab === 'Videos') {
+      html = videosView(await api(`/${game}/videos`));
     } else {
       html = rankingsView(await api(`/${game}/rankings`));
     }
@@ -159,9 +176,11 @@ function render() {
 
 document.addEventListener('click', (e) => {
   const g = e.target.closest('.game');
-  if (g) { state.game = g.dataset.game; state.tag = ''; return render(); }
+  if (g) { state.game = g.dataset.game; state.tag = ''; state.topic = 'Todos'; return render(); }
   const t = e.target.closest('[data-tab]');
   if (t) { state.tab = t.dataset.tab; return render(); }
+  const tp = e.target.closest('[data-topic]');
+  if (tp) { state.topic = tp.dataset.topic; return renderPanel(); }
   const r = e.target.closest('[data-rank]');
   if (r) { state.rank = r.dataset.rank; return renderPanel(); }
 });

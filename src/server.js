@@ -37,6 +37,7 @@ async function handleApi(url, res) {
 
   if (resource === 'meta') return send(res, 200, await handlers.meta());
   if (resource === 'news') return send(res, 200, await handlers.news());
+  if (resource === 'videos') return send(res, 200, await handlers.videos());
   if (resource === 'rankings') return send(res, 200, await handlers.rankings());
   if (resource === 'players' && arg) return send(res, 200, await handlers.player(arg));
   throw new ApiError(404, 'Ruta no encontrada.');

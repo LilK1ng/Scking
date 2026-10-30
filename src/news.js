@@ -9,7 +9,7 @@ const SLUGS = { royale: 'clashroyale', clans: 'clashofclans', brawl: 'brawlstars
 const baseUrl = () => (process.env.NEWS_BASE_URL || 'https://supercell.com').replace(/\/$/, '');
 
 const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', rsquo: '’', lsquo: '‘', ndash: '–', mdash: '—' };
-const decode = (s) =>
+export const decode = (s) =>
   s.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (m, e) => {
     if (e[0] === '#') {
       const code = e[1].toLowerCase() === 'x' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);

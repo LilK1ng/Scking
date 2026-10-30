@@ -42,7 +42,18 @@ const BLOG_HTML = `<ul>
 
 const ART1 = `<html><head><meta property="og:description" content="La nueva temporada trae un modo &amp; recompensas nuevas. ${'Texto largo para recortar. '.repeat(20)}"></head><body></body></html>`;
 const ART2 = `<html><body><p>corto</p><p>Este es el primer párrafo largo del artículo, con suficiente texto como para usarse de adelanto.</p></body></html>`;
+const UC = (c) => 'UC' + c.repeat(22);
+const handlePage = (c) => `<html><head><link rel="alternate" type="application/rss+xml" title="RSS" href="https://www.youtube.com/feeds/videos.xml?channel_id=${UC(c)}"></head></html>`;
+const feed = (channel, entries) => `<?xml version="1.0"?><feed xmlns:yt="http://www.youtube.com/xml/schemas/2015"><title>${channel}</title><author><name>${channel}</name></author>${entries.map(([id, title, date]) => `<entry><id>yt:video:${id}</id><yt:videoId>${id}</yt:videoId><title>${title}</title><author><name>${channel}</name></author><published>${date}</published></entry>`).join('')}</feed>`;
+const YT = {
+  '/@BrawlStars': handlePage('a'),
+  '/@SobaYT': handlePage('b'),
+  [`/feeds/videos.xml?channel_id=${UC('a')}`]: feed('Brawl Stars', [['AAAAAAAAAAA', 'NEW BRAWLER &amp; Event!', '2026-10-28T12:00:00+00:00'], ['BBBBBBBBBBB', 'Mejores brawlers META octubre', '2026-10-27T12:00:00+00:00']]),
+  [`/feeds/videos.xml?channel_id=${UC('b')}`]: feed('SobaYT', [['CCCCCCCCCCC', 'Gameplay random', '2026-10-29T12:00:00+00:00']]),
+};
 const fake = http.createServer((req, res) => {
+  if (YT[req.url]) { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(YT[req.url]); }
+  if (req.url.startsWith('/@')) { res.writeHead(404); return res.end('no'); }
   if (req.url === '/en/games/clashroyale/blog/release-notes/new-season-king-vs-king/') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(ART1); }
   if (req.url === '/en/games/clashroyale/blog/release-notes/october-balance-changes-2026/') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(ART2); }
   if (req.url === '/en/games/clashroyale/blog/') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(BLOG_HTML); }
@@ -66,9 +77,9 @@ function start(port, extraEnv) {
   });
 }
 
-const mockSrv = await start(4102, { NEWS_BASE_URL: 'http://localhost:1' });
+const mockSrv = await start(4102, { NEWS_BASE_URL: 'http://localhost:1', YOUTUBE_BASE_URL: 'http://localhost:1' });
 const liveSrv = await start(4103, {
-  CR_API_KEY: KEY, COC_API_KEY: KEY, BS_API_KEY: KEY, NEWS_BASE_URL: 'http://localhost:4101',
+  CR_API_KEY: KEY, COC_API_KEY: KEY, BS_API_KEY: KEY, NEWS_BASE_URL: 'http://localhost:4101', YOUTUBE_BASE_URL: 'http://localhost:4101',
   CR_BASE_URL: 'http://localhost:4101/royale/v1', COC_BASE_URL: 'http://localhost:4101/coc/v1', BS_BASE_URL: 'http://localhost:4101/brawl/v1',
 });
 
@@ -191,6 +202,28 @@ await check('con blog simulado: título, fecha, enlace y etiqueta', async () => 
 });
 await check('blog que falla en otro juego: vuelve a los ejemplos', async () => {
   assert.equal((await get(4103, '/api/brawl/news')).json.source, 'example');
+});
+
+console.log('Videos');
+await check('Brawl: une canales, ordena por fecha, clasifica y arma miniatura y enlace', async () => {
+  const { json } = await get(4103, '/api/brawl/videos');
+  assert.equal(json.source, 'live');
+  assert.deepEqual(json.items.map((v) => v.id), ['CCCCCCCCCCC', 'AAAAAAAAAAA', 'BBBBBBBBBBB']);
+  assert.deepEqual(json.items.map((v) => v.topic), ['Otros', 'Brawlers nuevos', 'Meta']);
+  assert.equal(json.items[1].title, 'NEW BRAWLER & Event!');
+  assert.equal(json.items[1].channel, 'Brawl Stars');
+  assert.equal(json.items[1].url, 'https://www.youtube.com/watch?v=AAAAAAAAAAA');
+  assert.equal(json.items[1].thumb, 'https://i.ytimg.com/vi/AAAAAAAAAAA/hqdefault.jpg');
+});
+await check('juego sin canales: mensaje claro', async () => {
+  const { json } = await get(4103, '/api/royale/videos');
+  assert.equal(json.source, 'empty');
+  assert.equal(json.items.length, 0);
+});
+await check('sin acceso a YouTube: devuelve error amable, no se cae', async () => {
+  const r = await get(4102, '/api/brawl/videos');
+  assert.equal(r.status, 200);
+  assert.equal(r.json.source, 'error');
 });
 
 mockSrv.kill(); liveSrv.kill(); fake.close();
