@@ -215,10 +215,11 @@ await check('Brawl: une canales, ordena por fecha, clasifica y arma miniatura y 
   assert.equal(json.items[1].url, 'https://www.youtube.com/watch?v=AAAAAAAAAAA');
   assert.equal(json.items[1].thumb, 'https://i.ytimg.com/vi/AAAAAAAAAAA/hqdefault.jpg');
 });
-await check('juego sin canales: mensaje claro', async () => {
+await check('canales que no responden: aviso amable, no se cae', async () => {
   const { json } = await get(4103, '/api/clans/videos');
-  assert.equal(json.source, 'empty');
+  assert.equal(json.source, 'error');
   assert.equal(json.items.length, 0);
+  assert.ok(json.message);
 });
 await check('sin acceso a YouTube: devuelve error amable, no se cae', async () => {
   const r = await get(4102, '/api/brawl/videos');
