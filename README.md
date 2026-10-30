@@ -29,6 +29,20 @@ recuadros con la inicial en lugar de imágenes.
 Con key de Clash Royale aparecen las imágenes de las cartas en los mazos y en el perfil de jugador.
 Con key de Brawl Stars aparecen las imágenes de los brawlers (vienen de Brawlify).
 
+## Videos de YouTube (key gratuita)
+
+La pestaña Videos funciona mejor con una key de la API oficial de YouTube. Sin key usa las listas
+públicas de cada canal, que a veces fallan. Para crearla:
+
+1. Entrá a https://console.cloud.google.com e iniciá sesión con tu cuenta de Google.
+2. Arriba, en el selector de proyectos, creá uno nuevo (por ejemplo "SCKING").
+3. Menú **APIs y servicios → Biblioteca**, buscá **YouTube Data API v3** y tocá **Habilitar**.
+4. Menú **APIs y servicios → Credenciales → Crear credenciales → Clave de API**.
+5. Copiá la clave y pegala en el `.env` después de `YOUTUBE_API_KEY=`.
+
+No necesita IP fija. La cuota gratuita (10.000 unidades por día) alcanza de sobra.
+Los canales se eligen en `src/channels.js`.
+
 ## Qué es real y qué es de ejemplo
 
 | Parte | Estado |

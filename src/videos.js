@@ -29,13 +29,66 @@ function channelCandidates(handle) {
     add(/<link\b[^>]*canonical[^>]*\/channel\/(UC[\w-]{22})/g);
     add(/<link\b[^>]*\/channel\/(UC[\w-]{22})[^>]*canonical/g);
     add(/"externalId":"(UC[\w-]{22})"/g);
-    add(/"browseId":"(UC[\w-]{22})"/g);
-    add(/"channelId":"(UC[\w-]{22})"/g);
-    if (!ids.length) throw new Error('no se encontró el identificador del canal en su página');
-    return ids.slice(0, 4);
+    add(/itemprop=["'](?:identifier|channelId)["'][^>]*content=["'](UC[\w-]{22})["']/g);
+    add(/property=["']og:url["'][^>]*content=["'][^"']*\/channel\/(UC[\w-]{22})["']/g);
+    // Se evitan a propósito "browseId" y "channelId" sueltos: en la página aparecen también los de
+    // otros canales (recomendados) y llevarían a videos de cualquier lado.
+    if (!ids.length) throw new Error('no se pudo identificar el canal desde su página (con una key de YouTube funciona siempre)');
+    return ids.slice(0, 2);
   });
 }
 
+// ---- Camino oficial: API de YouTube con key gratuita (YOUTUBE_API_KEY). Es el más confiable. ----
+const apiKey = () => process.env.YOUTUBE_API_KEY;
+const apiBase = () => (process.env.YOUTUBE_API_URL || 'https://www.googleapis.com/youtube/v3').replace(/\/$/, '');
+
+async function apiGet(path, params) {
+  const url = new URL(apiBase() + path);
+  for (const [k, v] of Object.entries({ ...params, key: apiKey() })) url.searchParams.set(k, v);
+  let res;
+  try {
+    res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json' }, signal: AbortSignal.timeout(10_000) });
+  } catch {
+    throw new Error('no hay conexión con la API de YouTube');
+  }
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    // No se escribe la dirección completa para no mostrar la key en pantalla.
+    const why = body?.error?.errors?.[0]?.reason || body?.error?.message || `HTTP ${res.status}`;
+    throw new Error(`la API de YouTube respondió: ${why}`);
+  }
+  return body;
+}
+
+// Lista de "subidos" del canal: se obtiene del @nombre y se guarda una semana.
+function uploadsPlaylist(handle) {
+  return cached(`yt:uploads:${handle}`, 7 * 24 * HOUR, async () => {
+    const r = await apiGet('/channels', { part: 'contentDetails', forHandle: handle.startsWith('@') ? handle : '@' + handle });
+    const id = r.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+    if (!id) throw new Error('canal no encontrado en YouTube');
+    return id;
+  });
+}
+
+async function latestViaApi(handle) {
+  const r = await apiGet('/playlistItems', { part: 'snippet,contentDetails', maxResults: '10', playlistId: await uploadsPlaylist(handle) });
+  const out = [];
+  for (const it of r.items ?? []) {
+    const id = it.contentDetails?.videoId || it.snippet?.resourceId?.videoId;
+    const title = it.snippet?.title;
+    if (!/^[\w-]{11}$/.test(id ?? '') || !title || /^(Private|Deleted) video$/i.test(title)) continue;
+    out.push({
+      id,
+      title: decode(title).trim(),
+      published: it.contentDetails?.videoPublishedAt || it.snippet?.publishedAt || '',
+      channel: it.snippet?.videoOwnerChannelTitle || it.snippet?.channelTitle || '',
+    });
+  }
+  if (!out.length) throw new Error('el canal no devolvió videos');
+  return out.slice(0, 6);
+}
+
+// ---- Camino sin key: lista pública (RSS) del canal. Menos confiable. ----
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Direcciones de la lista de videos de un canal, de más a menos conveniente:
@@ -109,14 +162,20 @@ const failedAt = new Map();
 export async function getVideos(game) {
   const handles = CHANNELS[game] ?? [];
   if (!handles.length) return { items: [], source: 'empty', message: 'Todavía no hay canales elegidos para este juego.' };
-  const error = { items: [], source: 'error', message: 'No se pudieron leer los videos. Probá de nuevo en unos minutos.' };
+  const error = {
+    items: [],
+    source: 'error',
+    message: apiKey()
+      ? 'No se pudieron leer los videos. Probá de nuevo en unos minutos.'
+      : 'No se pudieron leer los videos. Sin una key de YouTube (gratuita) es poco confiable: mirá el README para crearla.',
+  };
   if (Date.now() - (failedAt.get(game) ?? 0) < 2 * MIN) return error; // no insistir enseguida
 
   return cached(`videos:${game}`, 30 * MIN, async () => {
     const lists = [];
     for (const h of handles) {
       try {
-        lists.push(await latestFrom(h));
+        lists.push(await (apiKey() ? latestViaApi(h) : latestFrom(h)));
       } catch (err) {
         console.warn(`[videos] no se pudo leer ${h}: ${err.message}`);
       }

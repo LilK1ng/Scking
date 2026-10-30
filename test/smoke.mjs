@@ -47,12 +47,37 @@ const handlePage = (c) => `<html><head><link rel="alternate" type="application/r
 const feed = (channel, entries) => `<?xml version="1.0"?><feed xmlns:yt="http://www.youtube.com/xml/schemas/2015"><title>${channel}</title><author><name>${channel}</name></author>${entries.map(([id, title, date]) => `<entry><id>yt:video:${id}</id><yt:videoId>${id}</yt:videoId><title>${title}</title><author><name>${channel}</name></author><published>${date}</published></entry>`).join('')}</feed>`;
 const YT = {
   '/@BrawlStars': handlePage('a'),
-  // Página sin enlace RSS y con un "channelId" ajeno antes del propio: debe probar el siguiente identificador.
+  // Página sin enlace RSS y con un "channelId" ajeno: se ignora ese y se usa el "externalId" propio.
   '/@SobaYT': `<html><script>{"channelId":"${'UC' + 'z'.repeat(22)}"}</script><script>{"externalId":"${'UC' + 'b'.repeat(22)}"}</script></html>`,
   [`/feeds/videos.xml?channel_id=${UC('a')}`]: feed('Brawl Stars', [['AAAAAAAAAAA', 'NEW BRAWLER &amp; Event!', '2026-10-28T12:00:00+00:00'], ['BBBBBBBBBBB', 'Mejores brawlers META octubre', '2026-10-27T12:00:00+00:00']]),
   [`/feeds/videos.xml?channel_id=${UC('b')}`]: feed('SobaYT', [['CCCCCCCCCCC', 'Gameplay random', '2026-10-29T12:00:00+00:00']]),
 };
+// API de YouTube simulada
+const UP = { '@BrawlStars': 'UU' + 'a'.repeat(22), '@SobaYT': 'UU' + 'b'.repeat(22) };
+const PLAYLISTS = {
+  [UP['@BrawlStars']]: [
+    { id: 'AAAAAAAAAAA', title: 'NEW BRAWLER &amp; Event!', at: '2026-10-28T12:00:00Z', ch: 'Brawl Stars' },
+    { id: 'DDDDDDDDDDD', title: 'Private video', at: '2026-10-27T12:00:00Z', ch: 'Brawl Stars' },
+  ],
+  [UP['@SobaYT']]: [{ id: 'CCCCCCCCCCC', title: 'Gameplay random', at: '2026-10-29T12:00:00Z', ch: 'SobaYT' }],
+};
+function ytApi(req, res) {
+  const u = new URL(req.url, 'http://x');
+  const send = (s, b) => { res.writeHead(s, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(b)); };
+  if (u.searchParams.get('key') !== 'key-youtube') return send(400, { error: { errors: [{ reason: 'keyInvalid' }], message: 'API key not valid' } });
+  if (u.pathname === '/yt/channels') {
+    const id = UP[u.searchParams.get('forHandle')];
+    return send(200, { items: id ? [{ contentDetails: { relatedPlaylists: { uploads: id } } }] : [] });
+  }
+  if (u.pathname === '/yt/playlistItems') {
+    const list = PLAYLISTS[u.searchParams.get('playlistId')] ?? [];
+    return send(200, { items: list.map((v) => ({ snippet: { title: v.title, videoOwnerChannelTitle: v.ch, publishedAt: v.at }, contentDetails: { videoId: v.id, videoPublishedAt: v.at } })) });
+  }
+  send(404, {});
+}
+
 const fake = http.createServer((req, res) => {
+  if (req.url.startsWith('/yt/')) return ytApi(req, res);
   if (YT[req.url]) { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(YT[req.url]); }
   if (req.url.startsWith('/@')) { res.writeHead(404); return res.end('no'); }
   if (req.url === '/en/games/clashroyale/blog/release-notes/new-season-king-vs-king/') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(ART1); }
@@ -83,6 +108,12 @@ const liveSrv = await start(4103, {
   CR_API_KEY: KEY, COC_API_KEY: KEY, BS_API_KEY: KEY, NEWS_BASE_URL: 'http://localhost:4101', YOUTUBE_BASE_URL: 'http://localhost:4101',
   CR_BASE_URL: 'http://localhost:4101/royale/v1', COC_BASE_URL: 'http://localhost:4101/coc/v1', BS_BASE_URL: 'http://localhost:4101/brawl/v1',
 });
+
+const apiSrv = await start(4104, {
+  YOUTUBE_API_KEY: 'key-youtube', YOUTUBE_API_URL: 'http://localhost:4101/yt',
+  NEWS_BASE_URL: 'http://localhost:1',
+});
+const badKeySrv = await start(4105, { YOUTUBE_API_KEY: 'mala', YOUTUBE_API_URL: 'http://localhost:4101/yt', NEWS_BASE_URL: 'http://localhost:1' });
 
 const get = async (port, path) => {
   const r = await fetch(`http://localhost:${port}${path}`);
@@ -228,6 +259,20 @@ await check('sin acceso a YouTube: devuelve error amable, no se cae', async () =
   assert.equal(r.json.source, 'error');
 });
 
-mockSrv.kill(); liveSrv.kill(); fake.close();
+await check('con key de YouTube: usa la API oficial, ordena y descarta videos privados', async () => {
+  const { json } = await get(4104, '/api/brawl/videos');
+  assert.equal(json.source, 'live');
+  assert.deepEqual(json.items.map((v) => v.id), ['CCCCCCCCCCC', 'AAAAAAAAAAA']);
+  assert.equal(json.items[1].title, 'NEW BRAWLER & Event!');
+  assert.equal(json.items[1].topic, 'Brawlers nuevos');
+  assert.equal(json.items[1].url, 'https://www.youtube.com/watch?v=AAAAAAAAAAA');
+});
+await check('con key mala: avisa sin romper y sin mostrar la key', async () => {
+  const r = await get(4105, '/api/brawl/videos');
+  assert.equal(r.json.source, 'error');
+  assert.ok(!JSON.stringify(r.json).includes('mala'));
+});
+
+mockSrv.kill(); liveSrv.kill(); apiSrv.kill(); badKeySrv.kill(); fake.close();
 console.log(failed ? `\n${failed} prueba(s) fallaron` : '\nTodas las pruebas pasaron');
 process.exit(failed ? 1 : 0);
