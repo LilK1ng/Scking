@@ -36,14 +36,29 @@ function channelCandidates(handle) {
   });
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Direcciones de la lista de videos de un canal, de más a menos conveniente:
+// 1) lista "solo videos" (sin Shorts), 2) lista de todo lo subido, 3) lista clásica del canal.
+// A veces una responde 404 o 500 y otra no, por eso se prueban en orden.
+const feedUrls = (id) => [
+  `${base()}/feeds/videos.xml?playlist_id=UULF${id.slice(2)}`,
+  `${base()}/feeds/videos.xml?playlist_id=UU${id.slice(2)}`,
+  `${base()}/feeds/videos.xml?channel_id=${id}`,
+];
+
 async function latestFrom(handle) {
   let last;
-  for (const id of await channelCandidates(handle)) {
-    try {
-      const videos = parseFeed(await getText(`${base()}/feeds/videos.xml?channel_id=${id}`));
-      if (videos.length) return videos.slice(0, 6);
-    } catch (err) {
-      last = err;
+  for (const id of (await channelCandidates(handle)).slice(0, 2)) {
+    for (const url of feedUrls(id)) {
+      try {
+        const videos = parseFeed(await getText(url));
+        if (videos.length) return videos.slice(0, 6);
+        last = new Error('lista vacía');
+      } catch (err) {
+        last = err;
+        await sleep(300);
+      }
     }
   }
   throw last ?? new Error('el canal no devolvió videos');
@@ -89,21 +104,24 @@ export function classify(game, title) {
   return 'Otros';
 }
 
+const failedAt = new Map();
+
 export async function getVideos(game) {
   const handles = CHANNELS[game] ?? [];
   if (!handles.length) return { items: [], source: 'empty', message: 'Todavía no hay canales elegidos para este juego.' };
+  const error = { items: [], source: 'error', message: 'No se pudieron leer los videos. Probá de nuevo en unos minutos.' };
+  if (Date.now() - (failedAt.get(game) ?? 0) < 2 * MIN) return error; // no insistir enseguida
 
   return cached(`videos:${game}`, 30 * MIN, async () => {
-    const lists = await Promise.all(
-      handles.map(async (h) => {
-        try {
-          return await latestFrom(h);
-        } catch (err) {
-          console.warn(`[videos] no se pudo leer ${h}: ${err.message}`);
-          return [];
-        }
-      }),
-    );
+    const lists = [];
+    for (const h of handles) {
+      try {
+        lists.push(await latestFrom(h));
+      } catch (err) {
+        console.warn(`[videos] no se pudo leer ${h}: ${err.message}`);
+      }
+      await sleep(200);
+    }
     const items = lists
       .flat()
       .sort((a, b) => Date.parse(b.published) - Date.parse(a.published))
@@ -119,5 +137,8 @@ export async function getVideos(game) {
       }));
     if (!items.length) throw new Error('sin videos');
     return { items, source: 'live' };
-  }).catch(() => ({ items: [], source: 'error', message: 'No se pudieron leer los videos. Probá de nuevo en un rato.' }));
+  }).catch(() => {
+    failedAt.set(game, Date.now());
+    return error;
+  });
 }
