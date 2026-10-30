@@ -76,5 +76,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   createServer().listen(port, () => {
     console.log(`SCKING en http://localhost:${port}`);
     for (const g of GAME_IDS) console.log(`  ${g}: ${isLive(g) ? 'datos reales' : 'modo ejemplo (sin key)'}`);
+    console.log(`  youtube: ${process.env.YOUTUBE_API_KEY ? 'con key (API oficial)' : 'SIN key (poco confiable, ver README)'}`);
   });
 }
