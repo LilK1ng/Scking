@@ -47,7 +47,8 @@ const handlePage = (c) => `<html><head><link rel="alternate" type="application/r
 const feed = (channel, entries) => `<?xml version="1.0"?><feed xmlns:yt="http://www.youtube.com/xml/schemas/2015"><title>${channel}</title><author><name>${channel}</name></author>${entries.map(([id, title, date]) => `<entry><id>yt:video:${id}</id><yt:videoId>${id}</yt:videoId><title>${title}</title><author><name>${channel}</name></author><published>${date}</published></entry>`).join('')}</feed>`;
 const YT = {
   '/@BrawlStars': handlePage('a'),
-  '/@SobaYT': handlePage('b'),
+  // Página sin enlace RSS y con un "channelId" ajeno antes del propio: debe probar el siguiente identificador.
+  '/@SobaYT': `<html><script>{"channelId":"${'UC' + 'z'.repeat(22)}"}</script><script>{"externalId":"${'UC' + 'b'.repeat(22)}"}</script></html>`,
   [`/feeds/videos.xml?channel_id=${UC('a')}`]: feed('Brawl Stars', [['AAAAAAAAAAA', 'NEW BRAWLER &amp; Event!', '2026-10-28T12:00:00+00:00'], ['BBBBBBBBBBB', 'Mejores brawlers META octubre', '2026-10-27T12:00:00+00:00']]),
   [`/feeds/videos.xml?channel_id=${UC('b')}`]: feed('SobaYT', [['CCCCCCCCCCC', 'Gameplay random', '2026-10-29T12:00:00+00:00']]),
 };

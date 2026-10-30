@@ -15,18 +15,38 @@ async function getText(url) {
   return res.text();
 }
 
-// Del @nombre se obtiene el identificador interno del canal (UC...). No cambia, se guarda una semana.
-function channelId(handle) {
-  if (/^UC[\w-]{22}$/.test(handle)) return Promise.resolve(handle);
-  return cached(`yt:id:${handle}`, 7 * 24 * HOUR, async () => {
+// Del @nombre se obtienen los identificadores posibles del canal (UC...), del más confiable al menos.
+// Se guardan una semana. Al pedir los videos se prueba cada uno hasta que uno funcione.
+function channelCandidates(handle) {
+  if (/^UC[\w-]{22}$/.test(handle)) return Promise.resolve([handle]);
+  return cached(`yt:ids:${handle}`, 7 * 24 * HOUR, async () => {
     const html = await getText(`${base()}/${handle.startsWith('@') ? handle : '@' + handle}`);
-    const m =
-      html.match(/feeds\/videos\.xml\?channel_id=(UC[\w-]{22})/) ||
-      html.match(/"(?:channelId|externalId)":"(UC[\w-]{22})"/) ||
-      html.match(/channel\/(UC[\w-]{22})/);
-    if (!m) throw new Error('no se encontró el identificador del canal');
-    return m[1];
+    const ids = [];
+    const add = (re) => {
+      for (const m of html.matchAll(re)) if (!ids.includes(m[1])) ids.push(m[1]);
+    };
+    add(/feeds\/videos\.xml\?channel_id=(UC[\w-]{22})/g);
+    add(/<link\b[^>]*canonical[^>]*\/channel\/(UC[\w-]{22})/g);
+    add(/<link\b[^>]*\/channel\/(UC[\w-]{22})[^>]*canonical/g);
+    add(/"externalId":"(UC[\w-]{22})"/g);
+    add(/"browseId":"(UC[\w-]{22})"/g);
+    add(/"channelId":"(UC[\w-]{22})"/g);
+    if (!ids.length) throw new Error('no se encontró el identificador del canal en su página');
+    return ids.slice(0, 4);
   });
+}
+
+async function latestFrom(handle) {
+  let last;
+  for (const id of await channelCandidates(handle)) {
+    try {
+      const videos = parseFeed(await getText(`${base()}/feeds/videos.xml?channel_id=${id}`));
+      if (videos.length) return videos.slice(0, 6);
+    } catch (err) {
+      last = err;
+    }
+  }
+  throw last ?? new Error('el canal no devolvió videos');
 }
 
 export function parseFeed(xml) {
@@ -77,8 +97,7 @@ export async function getVideos(game) {
     const lists = await Promise.all(
       handles.map(async (h) => {
         try {
-          const xml = await getText(`${base()}/feeds/videos.xml?channel_id=${await channelId(h)}`);
-          return parseFeed(xml).slice(0, 6);
+          return await latestFrom(h);
         } catch (err) {
           console.warn(`[videos] no se pudo leer ${h}: ${err.message}`);
           return [];
