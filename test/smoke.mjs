@@ -216,7 +216,7 @@ await check('Brawl: une canales, ordena por fecha, clasifica y arma miniatura y 
   assert.equal(json.items[1].thumb, 'https://i.ytimg.com/vi/AAAAAAAAAAA/hqdefault.jpg');
 });
 await check('juego sin canales: mensaje claro', async () => {
-  const { json } = await get(4103, '/api/royale/videos');
+  const { json } = await get(4103, '/api/clans/videos');
   assert.equal(json.source, 'empty');
   assert.equal(json.items.length, 0);
 });

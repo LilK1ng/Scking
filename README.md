@@ -38,7 +38,7 @@ Con key de Brawl Stars aparecen las imágenes de los brawlers (vienen de Brawlif
 | Imágenes de cartas (Royale) y brawlers (Brawl Stars) | Reales con key |
 | Estadísticas de meta (uso, % de victorias) | **De ejemplo**. Hay que calcularlas |
 | Rotación de eventos, ejércitos, tracker de aldea | De ejemplo |
-| Videos de YouTube | Reales, de los canales listados en `src/channels.js` (sin key). Brawl Stars tiene 5 canales; Clash Royale y Clash of Clans todavía no tienen |
+| Videos de YouTube | Reales, de los canales listados en `src/channels.js` (sin key). Brawl Stars y Clash Royale tienen 5 canales cada uno; Clash of Clans todavía no tiene |
 | Novedades y parches | Reales, leídas del blog oficial de Supercell (título, fecha y enlace). Si no se pueden leer, se muestran de ejemplo. No necesita key |
 | Imágenes de tropas y héroes de Clash of Clans | Sin resolver |
 
