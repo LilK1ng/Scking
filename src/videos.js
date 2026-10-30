@@ -11,7 +11,7 @@ const UA = 'SCKING-fan-project/0.1 (sin fines de lucro)';
 
 async function getText(url) {
   const res = await fetch(url, { headers: { 'User-Agent': UA, 'Accept-Language': 'es-AR,es;q=0.9,en;q=0.5' }, signal: AbortSignal.timeout(10_000) });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status} en ${new URL(url).pathname}${new URL(url).search}`);
   return res.text();
 }
 
